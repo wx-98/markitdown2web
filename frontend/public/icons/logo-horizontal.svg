@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5" />
+      <stop offset="100%" style="stop-color:#7c3aed" />
+    </linearGradient>
+  </defs>
+  <!-- Icon -->
+  <rect x="2" y="2" width="36" height="36" rx="8" fill="url(#g)" />
+  <path d="M11 9 L19 9 L19 13 L15 13 L15 15 L18 15 L18 19 L15 19 L15 21 L19 21 L19 25 L11 25 Z" fill="#ffffff" />
+  <path d="M23 9 L29 9 L29 25 L23 25 L23 21 L27 21 L27 19 L24 19 L24 15 L27 15 L27 13 L23 13 Z" fill="#ffffff" />
+  <!-- Text -->
+  <text x="46" y="24" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="700" fill="#111827" letter-spacing="1">E2M</text>
+  <text x="46" y="36" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="9" fill="#9ca3af" letter-spacing="0.5">Everything ’ Markdown</text>
+</svg>

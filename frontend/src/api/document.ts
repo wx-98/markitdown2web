@@ -1,0 +1,25 @@
+import client from "./client";
+import type { ApiResponse, TaskStatus } from "@/types";
+
+export async function convertDocument(
+  file: File,
+  noteStyle: string = "detailed",
+): Promise<{ task_id: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("note_style", noteStyle);
+  const { data } = await client.post<ApiResponse<{ task_id: string }>>(
+    "/document/convert",
+    form,
+  );
+  return data.data;
+}
+
+export async function getDocumentStatus(
+  taskId: string,
+): Promise<TaskStatus> {
+  const { data } = await client.get<ApiResponse<TaskStatus>>(
+    `/document/status/${taskId}`,
+  );
+  return data.data;
+}
