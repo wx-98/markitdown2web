@@ -16,6 +16,7 @@ router = APIRouter()
 async def convert_document(
     file: UploadFile = File(...),
     note_style: str = Form("detailed"),
+    use_vlm: bool = Form(False),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename:
@@ -26,7 +27,9 @@ async def convert_document(
 
     task = await create_task(db, task_type="document", source=file.filename)
     launch_background(
-        run_document_pipeline(task.id, Path(file_path), file.filename, note_style)
+        run_document_pipeline(
+            task.id, Path(file_path), file.filename, note_style, use_vlm=use_vlm
+        )
     )
     return ApiResponse(data={"task_id": task.id})
 

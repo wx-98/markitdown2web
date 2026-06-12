@@ -53,4 +53,19 @@
 .markdown-body strong { @apply font-semibold text-gray-900; }
 .markdown-body a { @apply text-primary-600 underline decoration-primary-300 hover:text-primary-700; }
 .markdown-body hr { @apply my-6 border-gray-200; }
-.markdown-body img { @apply my-4 max-w-full rounded-lg; }
+.markdown-body img { @apply my-4 max-w-full rounded-lg shadow-sm; }
+
+/* KaTeX math formula styles */
+.markdown-body .katex-display {
+  @apply my-6 overflow-x-auto py-2;
+}
+.markdown-body .katex-display > .katex {
+  @apply text-lg;
+}
+.markdown-body .katex {
+  font-size: 1.1em;
+}
+.markdown-body .katex-html {
+  overflow-x: auto;
+  overflow-y: hidden;
+}

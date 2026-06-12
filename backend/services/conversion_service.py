@@ -104,7 +104,12 @@ async def run_url_pipeline(task_id: str, url: str, style: str) -> None:
 # ---------- Document pipeline ----------
 
 async def run_document_pipeline(
-    task_id: str, file_path: Path, original_name: str, style: str
+    task_id: str,
+    file_path: Path,
+    original_name: str,
+    style: str,
+    *,
+    use_vlm: bool = False,
 ) -> None:
     from backend.core.converter.factory import ConverterFactory
     from backend.core.llm.summarizer import generate_title, summarize_content
@@ -112,13 +117,19 @@ async def run_document_pipeline(
     try:
         await update_task(task_id, status="processing", progress=10)
 
-        converter = ConverterFactory.get_converter(original_name)
+        converter = ConverterFactory.get_converter(
+            original_name, use_vlm=use_vlm, task_id=task_id
+        )
         raw = await converter.convert(file_path)
+
+        extra = f"文件名: {original_name}"
+        if use_vlm:
+            extra += "\n此文档通过 VLM 逐页分析提取，内容中可能包含图片引用，请保留。"
 
         await update_task(task_id, progress=50)
         md = await summarize_content(
             raw, style=style, source_type="document",
-            extra_context=f"文件名: {original_name}",
+            extra_context=extra,
         )
         title = await generate_title(md)
 
