@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import subprocess
 from pathlib import Path
 
 
-async def download_video(url: str, output_dir: Path) -> Path:
-    """Download a video and return the local file path."""
+def _download_sync(url: str, output_dir: Path) -> Path:
     output_template = str(output_dir / "%(title)s.%(ext)s")
     cmd = [
         "yt-dlp",
@@ -17,12 +17,9 @@ async def download_video(url: str, output_dir: Path) -> Path:
         "-o", output_template,
         url,
     ]
-    proc = await asyncio.create_subprocess_exec(
-        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        raise RuntimeError(f"yt-dlp failed: {stderr.decode()}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"yt-dlp failed: {result.stderr}")
 
     mp4_files = list(output_dir.glob("*.mp4"))
     if not mp4_files:
@@ -31,3 +28,8 @@ async def download_video(url: str, output_dir: Path) -> Path:
             return all_files[0]
         raise FileNotFoundError("No video file downloaded")
     return mp4_files[0]
+
+
+async def download_video(url: str, output_dir: Path) -> Path:
+    """Download a video and return the local file path."""
+    return await asyncio.to_thread(_download_sync, url, output_dir)

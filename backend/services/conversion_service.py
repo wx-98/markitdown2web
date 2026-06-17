@@ -35,13 +35,28 @@ async def run_video_pipeline(
         result = await process_video(url=url, file_path=file_path, progress_callback=_progress)
 
         raw = ""
-        if result["transcript"]:
+        has_transcript = bool(result["transcript"])
+        has_frame_analysis = bool(result["frame_analysis"])
+
+        if has_transcript:
             raw += "## 语音转录\n\n" + result["transcript"] + "\n\n"
-        if result["frame_analysis"]:
+        if has_frame_analysis:
             raw += "## 视频帧分析\n\n" + result["frame_analysis"]
 
+        if not raw.strip():
+            raise RuntimeError("视频处理未能产出任何内容（ASR 和 VLM 均未返回结果）")
+
+        extra_context = ""
+        if not has_transcript:
+            extra_context = (
+                "注意：本视频无语音转录文本（ASR 未启用或失败），"
+                "内容完全基于视频帧的视觉分析。请基于帧分析内容整理笔记。"
+            )
+
         await update_task(task_id, progress=90)
-        md = await summarize_content(raw, style=style, source_type="video")
+        md = await summarize_content(
+            raw, style=style, source_type="video", extra_context=extra_context
+        )
         title = await generate_title(md)
 
         async with async_session_factory() as db:

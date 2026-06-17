@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     VLM_MODEL: str = "gpt-4o"
 
     # ---- ASR (语音识别) ----
+    ASR_ENABLED: bool = True
     ASR_API_KEY: str = ""
     ASR_BASE_URL: str = "https://api.openai.com/v1"
     ASR_MODEL: str = "whisper-1"

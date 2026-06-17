@@ -7,25 +7,26 @@ import subprocess
 from pathlib import Path
 
 
-async def extract_audio(video_path: Path, output_dir: Path) -> Path:
-    """Extract audio track to WAV using ffmpeg."""
+def _extract_audio_sync(video_path: Path, output_dir: Path) -> Path:
     audio_path = output_dir / "audio.wav"
     cmd = [
         "ffmpeg", "-i", str(video_path),
         "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
         "-y", str(audio_path),
     ]
-    proc = await asyncio.create_subprocess_exec(
-        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-    )
-    _, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        raise RuntimeError(f"ffmpeg audio extraction failed: {stderr.decode()}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg audio extraction failed: {result.stderr}")
     return audio_path
 
 
+async def extract_audio(video_path: Path, output_dir: Path) -> Path:
+    """Extract audio track to WAV using ffmpeg."""
+    return await asyncio.to_thread(_extract_audio_sync, video_path, output_dir)
+
+
 def _split_audio_sync(audio_path: Path, output_dir: Path, chunk_seconds: int = 600) -> list[Path]:
-    """Split a long audio file into chunks (sync, runs in executor)."""
+    """Split a long audio file into chunks."""
     result = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
          "-of", "default=noprint_wrappers=1:nokey=1", str(audio_path)],
@@ -53,5 +54,4 @@ def _split_audio_sync(audio_path: Path, output_dir: Path, chunk_seconds: int = 6
 
 
 async def split_audio(audio_path: Path, output_dir: Path) -> list[Path]:
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, _split_audio_sync, audio_path, output_dir)
+    return await asyncio.to_thread(_split_audio_sync, audio_path, output_dir)
