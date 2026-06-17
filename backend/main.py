@@ -34,6 +34,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from backend.middleware.tracking_middleware import TrackingMiddleware  # noqa: E402
+
+app.add_middleware(TrackingMiddleware)
+
 from backend.api.v1.router import api_router  # noqa: E402
 
 app.include_router(api_router, prefix="/api/v1")

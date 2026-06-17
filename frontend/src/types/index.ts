@@ -36,3 +36,21 @@ export interface ConversionResult {
 }
 
 export type NoteStyle = "brief" | "detailed" | "outline";
+
+export interface UserInfo {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  nickname: string;
+  avatar_url: string | null;
+  auth_provider: string;
+  role: string;
+  subscription_plan: string;
+  subscription_expires_at: string | null;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: UserInfo;
+}

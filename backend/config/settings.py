@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8001
 
-    # ---- 数据库 ----
-    DATABASE_URL: str = "sqlite:///./data/e2m.db"
+    # ---- 数据库 (MySQL) ----
+    DATABASE_URL: str = "mysql+aiomysql://root:root@localhost:3306/e2m"
 
     # ---- 文件存储 ----
     STORAGE_PATH: str = "./data/storage"
@@ -52,6 +52,58 @@ class Settings(BaseSettings):
 
     # ---- 文档处理 ----
     MAX_FILE_SIZE_MB: int = 50
+
+    # ---- JWT ----
+    JWT_SECRET_KEY: str = "change-me-jwt-secret"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 1440
+
+    # ---- Google OAuth ----
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:3000/auth/google/callback"
+
+    # ---- Email SMTP ----
+    SMTP_GMAIL_HOST: str = "smtp.gmail.com"
+    SMTP_GMAIL_PORT: int = 587
+    SMTP_GMAIL_USERNAME: str = ""
+    SMTP_GMAIL_PASSWORD: str = ""
+    SMTP_QQ_HOST: str = "smtp.qq.com"
+    SMTP_QQ_PORT: int = 587
+    SMTP_QQ_USERNAME: str = ""
+    SMTP_QQ_PASSWORD: str = ""
+
+    # ---- SMS ----
+    SMS_PROVIDER: str = "aliyun"
+    ALIYUN_ACCESS_KEY_ID: str = ""
+    ALIYUN_ACCESS_KEY_SECRET: str = ""
+    ALIYUN_SMS_SIGN_NAME: str = ""
+    ALIYUN_SMS_TEMPLATE_CODE: str = ""
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+
+    # ---- Stripe ----
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID_MONTHLY: str = ""
+
+    # ---- WeChat Pay ----
+    WECHAT_APP_ID: str = ""
+    WECHAT_MCH_ID: str = ""
+    WECHAT_API_KEY: str = ""
+    WECHAT_NOTIFY_URL: str = ""
+
+    # ---- Alipay ----
+    ALIPAY_APP_ID: str = ""
+    ALIPAY_PRIVATE_KEY: str = ""
+    ALIPAY_PUBLIC_KEY: str = ""
+    ALIPAY_NOTIFY_URL: str = ""
+
+    # ---- Pricing ----
+    MONTHLY_PRICE_CNY: int = 2900
+    MONTHLY_PRICE_USD: int = 999
 
     # ---- 计算属性 ----
 

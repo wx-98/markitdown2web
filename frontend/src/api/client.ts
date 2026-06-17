@@ -6,10 +6,28 @@ const client = axios.create({
   timeout: 120_000,
 });
 
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  const sid = sessionStorage.getItem("e2m_session_id");
+  if (sid) {
+    config.headers["X-Session-Id"] = sid;
+  }
+  return config;
+});
+
 client.interceptors.response.use(
   (resp) => resp,
   (err) => {
-    const message = err.response?.data?.message || err.message || "请求失败";
+    if (err.response?.status === 401) {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
+    const message =
+      err.response?.data?.detail || err.response?.data?.message || err.message || "请求失败";
     return Promise.reject(new Error(message));
   },
 );

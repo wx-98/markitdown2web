@@ -1,11 +1,15 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  CreditCard,
   FileText,
   Globe,
   History,
   Home,
+  LogOut,
   Video,
 } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
+import SubscriptionBadge from "./SubscriptionBadge";
 
 const NAV_ITEMS = [
   { to: "/", label: "首页", icon: Home },
@@ -13,10 +17,19 @@ const NAV_ITEMS = [
   { to: "/url", label: "URL 转笔记", icon: Globe },
   { to: "/document", label: "文档转笔记", icon: FileText },
   { to: "/history", label: "历史记录", icon: History },
+  { to: "/pricing", label: "订阅套餐", icon: CreditCard },
 ];
 
 export default function Layout() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -54,10 +67,30 @@ export default function Layout() {
           })}
         </nav>
 
+        {/* User info */}
         <div className="border-t border-gray-100 px-4 py-3">
-          <p className="text-xs text-gray-400 text-center">
-            Powered by OpenAI & MarkItDown
-          </p>
+          {user && (
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-800">
+                  {user.nickname || user.email || user.phone}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <SubscriptionBadge />
+                  <span className="truncate text-xs text-gray-400">
+                    {user.email || user.phone}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="ml-2 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                title="退出登录"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
