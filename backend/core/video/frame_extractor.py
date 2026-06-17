@@ -19,7 +19,7 @@ def _extract_frames_sync(video_path: Path, output_dir: Path, interval: int) -> l
         "-q:v", "2",
         str(frames_dir / "frame_%04d.jpg"),
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg frame extraction failed: {result.stderr}")
 

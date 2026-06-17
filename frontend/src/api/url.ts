@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { unwrap } from "./client";
 import type { ApiResponse, TaskStatus } from "@/types";
 
 export async function processUrl(
@@ -9,7 +9,7 @@ export async function processUrl(
     "/url/process",
     { url, note_style: noteStyle },
   );
-  return data.data;
+  return unwrap(data);
 }
 
 export async function getUrlStatus(
@@ -18,5 +18,5 @@ export async function getUrlStatus(
   const { data } = await client.get<ApiResponse<TaskStatus>>(
     `/url/status/${taskId}`,
   );
-  return data.data;
+  return unwrap(data);
 }

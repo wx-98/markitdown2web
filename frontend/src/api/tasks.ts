@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { unwrap } from "./client";
 import type { ApiResponse, ConversionResult, TaskInfo } from "@/types";
 
 export async function getTasks(
@@ -8,7 +8,7 @@ export async function getTasks(
   const { data } = await client.get<ApiResponse<TaskInfo[]>>("/tasks", {
     params: { limit, offset },
   });
-  return data.data;
+  return unwrap(data);
 }
 
 export async function getResult(
@@ -17,7 +17,7 @@ export async function getResult(
   const { data } = await client.get<ApiResponse<ConversionResult>>(
     `/export/result/${resultId}`,
   );
-  return data.data;
+  return unwrap(data);
 }
 
 export async function exportResult(

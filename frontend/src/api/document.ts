@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { unwrap } from "./client";
 import type { ApiResponse, TaskStatus } from "@/types";
 
 export async function convertDocument(
@@ -14,7 +14,7 @@ export async function convertDocument(
     "/document/convert",
     form,
   );
-  return data.data;
+  return unwrap(data);
 }
 
 export async function getDocumentStatus(
@@ -23,5 +23,5 @@ export async function getDocumentStatus(
   const { data } = await client.get<ApiResponse<TaskStatus>>(
     `/document/status/${taskId}`,
   );
-  return data.data;
+  return unwrap(data);
 }

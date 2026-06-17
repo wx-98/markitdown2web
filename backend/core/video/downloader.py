@@ -17,7 +17,7 @@ def _download_sync(url: str, output_dir: Path) -> Path:
         "-o", output_template,
         url,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
         raise RuntimeError(f"yt-dlp failed: {result.stderr}")
 

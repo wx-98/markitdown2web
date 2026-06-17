@@ -1,15 +1,18 @@
-import client from "./client";
+import client, { unwrap } from "./client";
 import type { ApiResponse, TaskStatus } from "@/types";
 
 export async function processVideoUrl(
   url: string,
   noteStyle: string = "detailed",
 ): Promise<{ task_id: string }> {
+  const form = new FormData();
+  form.append("url", url);
+  form.append("note_style", noteStyle);
   const { data } = await client.post<ApiResponse<{ task_id: string }>>(
     "/video/process",
-    { url, note_style: noteStyle },
+    form,
   );
-  return data.data;
+  return unwrap(data);
 }
 
 export async function processVideoFile(
@@ -23,7 +26,7 @@ export async function processVideoFile(
     "/video/process",
     form,
   );
-  return data.data;
+  return unwrap(data);
 }
 
 export async function getVideoStatus(
@@ -32,5 +35,5 @@ export async function getVideoStatus(
   const { data } = await client.get<ApiResponse<TaskStatus>>(
     `/video/status/${taskId}`,
   );
-  return data.data;
+  return unwrap(data);
 }
