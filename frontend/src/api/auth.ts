@@ -65,6 +65,26 @@ export async function getMe() {
   return data;
 }
 
+export async function updateProfile(params: { nickname?: string; avatar_url?: string }) {
+  const { data } = await client.patch<import("@/types").UserInfo>("/auth/profile", params);
+  return data;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  await client.post("/auth/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+}
+
+export async function changeEmail(newEmail: string, code: string) {
+  const { data } = await client.post<import("@/types").UserInfo>("/auth/change-email", {
+    new_email: newEmail,
+    code,
+  });
+  return data;
+}
+
 export function getGoogleAuthUrl() {
   return "/api/v1/auth/google";
 }

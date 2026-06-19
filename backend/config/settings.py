@@ -18,9 +18,10 @@ class Settings(BaseSettings):
     # ---- 服务器 ----
     HOST: str = "0.0.0.0"
     PORT: int = 8001
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # ---- 数据库 (MySQL) ----
-    DATABASE_URL: str = "mysql+aiomysql://root:root@localhost:3306/e2m"
+    DATABASE_URL: str = "mysql+asyncmy://root:root@localhost:3306/e2m"
 
     # ---- 文件存储 ----
     STORAGE_PATH: str = "./data/storage"

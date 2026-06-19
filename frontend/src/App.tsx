@@ -11,7 +11,12 @@ import History from "./pages/History";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Pricing from "./pages/Pricing";
+import Profile from "./pages/Profile";
+import PptxCreate from "./pages/PptxCreate";
+import PptxJobDetail from "./pages/PptxJobDetail";
+import PptxHistory from "./pages/PptxHistory";
 import { initSession } from "./utils/tracking";
+import "@/stores/themeStore";
 
 export default function App() {
   useEffect(() => {
@@ -36,6 +41,10 @@ export default function App() {
         <Route path="/result/:resultId" element={<Result />} />
         <Route path="/history" element={<History />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/pptx" element={<PptxCreate />} />
+        <Route path="/pptx/job/:jobId" element={<PptxJobDetail />} />
+        <Route path="/pptx/history" element={<PptxHistory />} />
       </Route>
     </Routes>
   );

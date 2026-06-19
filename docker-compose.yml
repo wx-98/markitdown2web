@@ -27,7 +27,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: mysql+aiomysql://e2m:e2m_password@mysql:3306/e2m
+      DATABASE_URL: mysql+asyncmy://e2m:e2m_password@mysql:3306/e2m
     volumes:
       - ./data:/app/data
     depends_on:
@@ -51,6 +51,16 @@ services:
       dockerfile: Dockerfile.admin
     ports:
       - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  pptx-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.pptx
+    ports:
+      - "3002:80"
     depends_on:
       - backend
     restart: unless-stopped

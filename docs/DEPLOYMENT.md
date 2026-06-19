@@ -190,8 +190,8 @@ docker-compose exec -T mysql mysql -u e2m -pe2m_password e2m < backup.sql
 
 ## 6. 常见问题
 
-**Q: 启动后端报 `aiomysql` 连接错误？**
-A: 确认 MySQL 已启动，`DATABASE_URL` 格式正确，用户有权限访问数据库。
+**Q: 启动后端报 MySQL 连接错误？**
+A: 确认 MySQL 已启动，`DATABASE_URL` 格式正确（使用 `mysql+asyncmy://` 前缀），用户有权限访问数据库。
 
 **Q: 短信验证码收不到？**
 A: 检查 `.env` 中 SMS 配置，无配置时验证码会打印到日志。

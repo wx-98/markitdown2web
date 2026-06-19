@@ -13,6 +13,7 @@ from backend.api.v1.endpoints import (
     url,
     video,
 )
+from pptx_backend.router import pptx_router
 
 api_router = APIRouter()
 
@@ -27,3 +28,4 @@ api_router.include_router(document.router, prefix="/document", tags=["document"]
 api_router.include_router(export.router, prefix="/export", tags=["export"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(files.router, prefix="/files", tags=["files"])
+api_router.include_router(pptx_router, prefix="/pptx", tags=["pptx"])

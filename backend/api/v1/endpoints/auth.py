@@ -1,9 +1,14 @@
+import json
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_current_user, get_db
 from backend.config import settings
+from backend.core.security import hash_password, verify_password
 from backend.models.user import User
 from backend.schemas.auth import (
     AuthResponse,
@@ -134,7 +139,7 @@ async def google_redirect():
     return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
 
 
-@router.get("/google/callback", response_model=AuthResponse)
+@router.get("/google/callback")
 async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
     import httpx
 
@@ -150,7 +155,8 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
             },
         )
         if token_resp.status_code != 200:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google token exchange failed")
+            frontend = settings.FRONTEND_URL or "http://localhost:3000"
+            return RedirectResponse(f"{frontend}/login?error=google_token_failed")
         tokens = token_resp.json()
 
         userinfo_resp = await client.get(
@@ -158,7 +164,8 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
             headers={"Authorization": f"Bearer {tokens['access_token']}"},
         )
         if userinfo_resp.status_code != 200:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Failed to get Google user info")
+            frontend = settings.FRONTEND_URL or "http://localhost:3000"
+            return RedirectResponse(f"{frontend}/login?error=google_userinfo_failed")
         info = userinfo_resp.json()
 
     user, token = await auth_service.get_or_create_by_google(
@@ -168,9 +175,88 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
         name=info.get("name", ""),
         avatar=info.get("picture"),
     )
-    return AuthResponse(access_token=token, user=_user_info(user))
+
+    user_info = _user_info(user)
+    frontend = settings.FRONTEND_URL or "http://localhost:3000"
+    params = urlencode({
+        "google_token": token,
+        "google_user": json.dumps(user_info.model_dump(), ensure_ascii=False),
+    })
+    return RedirectResponse(f"{frontend}/login?{params}")
 
 
 @router.get("/me", response_model=UserInfo)
 async def me(user: User = Depends(get_current_user)):
+    return _user_info(user)
+
+
+class UpdateProfileRequest(BaseModel):
+    nickname: str | None = None
+    avatar_url: str | None = None
+
+
+@router.patch("/profile", response_model=UserInfo)
+async def update_profile(
+    body: UpdateProfileRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.nickname is not None:
+        user.nickname = body.nickname
+    if body.avatar_url is not None:
+        user.avatar_url = body.avatar_url
+    await db.commit()
+    await db.refresh(user)
+    return _user_info(user)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not user.password_hash:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "当前账号通过第三方登录，未设置密码。请先通过邮箱验证码设置密码。",
+        )
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "当前密码错误")
+    if len(body.new_password) < 6:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "新密码不能少于 6 位")
+    user.password_hash = hash_password(body.new_password)
+    await db.commit()
+    return {"message": "密码修改成功"}
+
+
+class ChangeEmailRequest(BaseModel):
+    new_email: str
+    code: str
+
+
+@router.post("/change-email", response_model=UserInfo)
+async def change_email(
+    body: ChangeEmailRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import select
+
+    exists = await db.execute(select(User).where(User.email == body.new_email))
+    if exists.scalar_one_or_none():
+        raise HTTPException(status.HTTP_409_CONFLICT, "该邮箱已被其他账号绑定")
+
+    valid = await email_service.verify_code(db, body.new_email, body.code, "change_email")
+    if not valid:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "验证码错误或已过期")
+
+    user.email = body.new_email
+    await db.commit()
+    await db.refresh(user)
     return _user_info(user)

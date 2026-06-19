@@ -254,7 +254,7 @@ def _read_env() -> dict[str, str]:
     if not _ENV_FILE.exists():
         return {}
     result = {}
-    for line in _ENV_FILE.read_text().splitlines():
+    for line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -288,6 +288,6 @@ async def update_config(
         updated_keys.append(key)
 
     lines = [f"{k}={v}" for k, v in env.items()]
-    _ENV_FILE.write_text("\n".join(lines) + "\n")
+    _ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     return {"updated": updated_keys}

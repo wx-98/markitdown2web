@@ -7,6 +7,7 @@ from backend.models.payment import Payment
 from backend.models.sms_code import SmsCode
 from backend.models.email_code import EmailCode
 from backend.models.tracking import TrackingEvent, OrderTracking
+from backend.models.pptx_job import PptxJob
 
 __all__ = [
     "Base",
@@ -19,4 +20,5 @@ __all__ = [
     "EmailCode",
     "TrackingEvent",
     "OrderTracking",
+    "PptxJob",
 ]

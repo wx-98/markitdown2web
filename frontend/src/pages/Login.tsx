@@ -1,59 +1,43 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Phone, Chrome, Eye, EyeOff, KeyRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Mail, Chrome, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/stores/authStore";
-import {
-  loginByEmail,
-  sendSmsCode,
-  verifySmsCode,
-  sendEmailCode,
-  verifyEmailCode,
-  getGoogleAuthUrl,
-} from "@/api/auth";
+import { loginByEmail, getGoogleAuthUrl } from "@/api/auth";
 import { trackEvent } from "@/utils/tracking";
 
-type Tab = "email" | "email_code" | "phone";
-
 export default function Login() {
-  const [tab, setTab] = useState<Tab>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [smsCode, setSmsCode] = useState("");
-  const [smsSent, setSmsSent] = useState(false);
-
-  const [emailForCode, setEmailForCode] = useState("");
-  const [emailCode, setEmailCode] = useState("");
-  const [emailCodeSent, setEmailCodeSent] = useState(false);
-  const [emailCountdown, setEmailCountdown] = useState(0);
-  const emailTimerRef = useRef<ReturnType<typeof setInterval>>();
-
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
 
   useEffect(() => {
-    return () => {
-      if (emailTimerRef.current) clearInterval(emailTimerRef.current);
-    };
-  }, []);
+    const token = searchParams.get("google_token");
+    const userRaw = searchParams.get("google_user");
+    if (token && userRaw) {
+      try {
+        const user = JSON.parse(decodeURIComponent(userRaw));
+        setAuth(token, user);
+        trackEvent("login", { method: "google" });
+        toast.success("Google 登录成功");
+        navigate("/", { replace: true });
+      } catch {
+        toast.error("Google 登录回调解析失败");
+      }
+    }
+  }, [searchParams, setAuth, navigate]);
 
-  const startEmailCountdown = () => {
-    setEmailCountdown(60);
-    emailTimerRef.current = setInterval(() => {
-      setEmailCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(emailTimerRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  useEffect(() => {
+    if (isLoggedIn()) navigate("/", { replace: true });
+  }, [isLoggedIn, navigate]);
 
-  const handleEmailLogin = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
       const res = await loginByEmail(email, password);
@@ -61,63 +45,8 @@ export default function Login() {
       trackEvent("login", { method: "email" });
       toast.success("登录成功");
       navigate("/");
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendEmailCode = async () => {
-    if (!emailForCode) return;
-    setLoading(true);
-    try {
-      await sendEmailCode(emailForCode, "login");
-      setEmailCodeSent(true);
-      startEmailCountdown();
-      toast.success("验证码已发送到邮箱");
-    } catch (e: any) {
-      toast.error(e.message || "发送验证码失败");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailCodeLogin = async () => {
-    setLoading(true);
-    try {
-      const res = await verifyEmailCode(emailForCode, emailCode, "login");
-      setAuth(res.access_token, res.user);
-      trackEvent("login", { method: "email_code" });
-      toast.success("登录成功");
-      navigate("/");
-    } catch (e: any) {
-      toast.error(e.message || "验证码错误或已过期");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendSms = async () => {
-    try {
-      await sendSmsCode(phone, "login");
-      setSmsSent(true);
-      toast.success("验证码已发送");
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  };
-
-  const handlePhoneLogin = async () => {
-    setLoading(true);
-    try {
-      const res = await verifySmsCode(phone, smsCode, "login");
-      setAuth(res.access_token, res.user);
-      trackEvent("login", { method: "phone" });
-      toast.success("登录成功");
-      navigate("/");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: any) {
+      toast.error(err.message || "登录失败");
     } finally {
       setLoading(false);
     }
@@ -129,147 +58,50 @@ export default function Login() {
         <h1 className="mb-1 text-2xl font-bold text-gray-900">登录 E2M</h1>
         <p className="mb-6 text-sm text-gray-500">AI 驱动的内容转写平台</p>
 
-        {/* Tabs */}
-        <div className="mb-6 flex border-b border-gray-200">
-          <button
-            onClick={() => setTab("email")}
-            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${tab === "email" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}
-          >
-            <Mail size={15} /> 密码登录
-          </button>
-          <button
-            onClick={() => setTab("email_code")}
-            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${tab === "email_code" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}
-          >
-            <KeyRound size={15} /> 邮箱验证码
-          </button>
-          <button
-            onClick={() => setTab("phone")}
-            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${tab === "phone" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}
-          >
-            <Phone size={15} /> 手机号
-          </button>
-        </div>
-
-        {/* Email + Password */}
-        {tab === "email" && (
-          <div className="space-y-4">
-            <input
-              type="email"
-              placeholder="邮箱地址"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">邮箱</label>
+            <div className="relative">
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">密码</label>
             <div className="relative">
               <input
                 type={showPwd ? "text" : "password"}
-                placeholder="密码"
+                placeholder="输入密码"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                required
               />
               <button
                 type="button"
                 onClick={() => setShowPwd(!showPwd)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <button
-              onClick={handleEmailLogin}
-              disabled={loading || !email || !password}
-              className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? "登录中..." : "登录"}
-            </button>
           </div>
-        )}
+          <button
+            type="submit"
+            disabled={loading || !email || !password}
+            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? "登录中..." : "登录"}
+          </button>
+        </form>
 
-        {/* Email verification code */}
-        {tab === "email_code" && (
-          <div className="space-y-4">
-            <input
-              type="email"
-              placeholder="邮箱地址（支持 Gmail / QQ 邮箱）"
-              value={emailForCode}
-              onChange={(e) => setEmailForCode(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="6 位验证码"
-                value={emailCode}
-                maxLength={6}
-                onChange={(e) =>
-                  setEmailCode(e.target.value.replace(/\D/g, ""))
-                }
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-              <button
-                onClick={handleSendEmailCode}
-                disabled={!emailForCode || loading || emailCountdown > 0}
-                className="whitespace-nowrap rounded-lg border border-blue-600 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition-colors"
-              >
-                {emailCountdown > 0
-                  ? `${emailCountdown}s`
-                  : emailCodeSent
-                    ? "重新发送"
-                    : "发送验证码"}
-              </button>
-            </div>
-            <button
-              onClick={handleEmailCodeLogin}
-              disabled={loading || !emailForCode || emailCode.length !== 6}
-              className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? "登录中..." : "登录"}
-            </button>
-            <p className="text-xs text-gray-400 text-center">
-              未注册的邮箱将自动创建账户
-            </p>
-          </div>
-        )}
-
-        {/* Phone + SMS */}
-        {tab === "phone" && (
-          <div className="space-y-4">
-            <input
-              type="tel"
-              placeholder="手机号"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="验证码"
-                value={smsCode}
-                onChange={(e) => setSmsCode(e.target.value)}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-              <button
-                onClick={handleSendSms}
-                disabled={!phone || smsSent}
-                className="whitespace-nowrap rounded-lg border border-blue-600 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition-colors"
-              >
-                {smsSent ? "已发送" : "发送验证码"}
-              </button>
-            </div>
-            <button
-              onClick={handlePhoneLogin}
-              disabled={loading || !phone || !smsCode}
-              className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? "登录中..." : "登录"}
-            </button>
-          </div>
-        )}
-
-        {/* Divider */}
         <div className="my-6 flex items-center gap-3">
           <div className="h-px flex-1 bg-gray-200" />
           <span className="text-xs text-gray-400">其他方式</span>
