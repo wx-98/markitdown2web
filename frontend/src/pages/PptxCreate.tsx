@@ -1,10 +1,25 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Presentation, Sparkles, Globe, FileText, Type, Upload, X } from "lucide-react";
+import { Presentation, Sparkles, Globe, FileText, Upload, X } from "lucide-react";
 import { createPptxJob } from "@/api/pptx";
+import { useTaskStore } from "@/stores/taskStore";
 
 type SourceTab = "text" | "file" | "url";
+
+const VALID_TABS: SourceTab[] = ["text", "file", "url"];
+
+const TAB_TITLES: Record<SourceTab, string> = {
+  text: "文本输入",
+  file: "文件上传",
+  url: "URL 导入",
+};
+
+const TAB_DESCRIPTIONS: Record<SourceTab, string> = {
+  text: "输入或粘贴文本内容，AI 自动生成专业演示文稿",
+  file: "上传文档文件，AI 自动提取内容并生成演示文稿",
+  url: "粘贴网页链接，AI 自动抓取内容并生成演示文稿",
+};
 
 const CANVAS_OPTIONS = [
   { value: "ppt169", label: "16:9 宽屏" },
@@ -20,7 +35,17 @@ const STYLE_OPTIONS = [
 
 export default function PptxCreate() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<SourceTab>("text");
+  const [searchParams] = useSearchParams();
+  const sourceParam = searchParams.get("source") as SourceTab | null;
+  const initialTab = sourceParam && VALID_TABS.includes(sourceParam) ? sourceParam : "text";
+  const [tab, setTab] = useState<SourceTab>(initialTab);
+
+  useEffect(() => {
+    if (sourceParam && VALID_TABS.includes(sourceParam)) {
+      setTab(sourceParam);
+    }
+  }, [sourceParam]);
+
   const [content, setContent] = useState("");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -29,6 +54,7 @@ export default function PptxCreate() {
   const [pageCount, setPageCount] = useState(10);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const addTask = useTaskStore((s) => s.addTask);
 
   const handleSubmit = async () => {
     let finalContent = "";
@@ -60,6 +86,7 @@ export default function PptxCreate() {
         page_count: pageCount,
         file: file ?? undefined,
       });
+      addTask({ taskId: job.id, type: "pptx", source: sourceName || "PPTX", detailPath: `/pptx/job/${job.id}` });
       toast.success("任务创建成功");
       navigate(`/pptx/job/${job.id}`);
     } catch (err: any) {
@@ -69,38 +96,21 @@ export default function PptxCreate() {
     }
   };
 
-  const tabCls = (t: SourceTab) =>
-    `flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-      tab === t
-        ? "bg-primary-600 text-white shadow-sm"
-        : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-    }`;
-
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* Header — dynamic based on tab */}
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 dark:bg-primary-900/40">
           <Presentation size={32} className="text-primary-600 dark:text-primary-400" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Everything 转 PPTX</h1>
-        <p className="mt-2 text-gray-500 dark:text-gray-400">输入内容、上传文档或粘贴链接，AI 自动生成专业演示文稿</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Everything 转 PPTX — {TAB_TITLES[tab]}
+        </h1>
+        <p className="mt-2 text-gray-500 dark:text-gray-400">{TAB_DESCRIPTIONS[tab]}</p>
       </div>
 
-      {/* Source tabs */}
+      {/* Input area — directly shows for current tab, no tab bar */}
       <div className="card dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-5 flex gap-2 rounded-xl bg-gray-100 p-1 dark:bg-gray-700">
-          <button onClick={() => setTab("text")} className={tabCls("text")}>
-            <Type size={16} /> 文本输入
-          </button>
-          <button onClick={() => setTab("file")} className={tabCls("file")}>
-            <FileText size={16} /> 文件上传
-          </button>
-          <button onClick={() => setTab("url")} className={tabCls("url")}>
-            <Globe size={16} /> URL 导入
-          </button>
-        </div>
-
         {tab === "text" && (
           <textarea
             className="input min-h-[180px] resize-y dark:border-gray-600 dark:bg-gray-700 dark:text-white"

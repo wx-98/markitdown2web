@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import get_db
 from backend.schemas.common import ApiResponse
 from backend.services.task_service import create_task, get_task
-from backend.services.conversion_service import launch_background, run_video_pipeline
+from backend.services.conversion_service import get_task_event_queue, launch_background, run_video_pipeline
 from backend.utils.file_utils import save_upload
 
 router = APIRouter()
@@ -32,6 +32,7 @@ async def process_video(
 
     source = video_url or (file.filename if file else "uploaded_video")
     task = await create_task(db, task_type="video", source=source)
+    get_task_event_queue(task.id)
 
     launch_background(
         run_video_pipeline(task.id, video_url, Path(file_path) if file_path else None, note_style)

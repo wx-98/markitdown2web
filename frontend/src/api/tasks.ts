@@ -11,6 +11,20 @@ export async function getTasks(
   return unwrap(data);
 }
 
+export async function getTask(taskId: string): Promise<TaskInfo> {
+  const { data } = await client.get<ApiResponse<TaskInfo>>(`/tasks/${taskId}`);
+  return unwrap(data);
+}
+
+export function getTaskStreamUrl(taskId: string): string {
+  return `/api/v1/tasks/${taskId}/stream`;
+}
+
+export async function getActiveTasks(): Promise<TaskInfo[]> {
+  const { data } = await client.get<ApiResponse<TaskInfo[]>>("/tasks/active");
+  return unwrap(data);
+}
+
 export async function getResult(
   resultId: string,
 ): Promise<ConversionResult> {

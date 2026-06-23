@@ -30,6 +30,7 @@ dependencies = [
     "python-pptx>=0.6.21",
     "PyMuPDF>=1.23.0",
     "cairosvg>=2.7",
+    "sse-starlette>=2.0",
 ]
 
 [project.optional-dependencies]

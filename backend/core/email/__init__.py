@@ -41,7 +41,10 @@ def _pick_smtp_config(to_email: str) -> tuple[str, int, str, str]:
             settings.SMTP_GMAIL_USERNAME,
             settings.SMTP_GMAIL_PASSWORD,
         )
-    raise RuntimeError("No SMTP provider configured")
+    raise RuntimeError(
+        "SMTP 未配置。请设置 SMTP_QQ_USERNAME/SMTP_QQ_PASSWORD 或 "
+        "SMTP_GMAIL_USERNAME/SMTP_GMAIL_PASSWORD 环境变量"
+    )
 
 
 async def send_email(to_email: str, subject: str, html_body: str) -> bool:

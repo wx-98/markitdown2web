@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   CheckCircle,
   Clock,
+  ExternalLink,
   FileText,
   Globe,
   Loader2,
@@ -35,6 +36,20 @@ const STATUS_META: Record<
   failed: { icon: XCircle, color: "text-red-600", label: "失败" },
 };
 
+function getTaskLink(task: TaskInfo): string {
+  if (task.status === "completed" && task.result_id) {
+    return `/result/${task.result_id}`;
+  }
+  return `/task/${task.id}`;
+}
+
+function getActionLabel(task: TaskInfo): string {
+  if (task.status === "completed") return "查看结果";
+  if (task.status === "processing" || task.status === "pending") return "查看进度";
+  if (task.status === "failed") return "查看详情";
+  return "查看";
+}
+
 export default function History() {
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +70,7 @@ export default function History() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">历史记录</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">历史记录</h1>
 
       {tasks.length === 0 ? (
         <div className="card py-16 text-center text-gray-400">
@@ -70,9 +85,10 @@ export default function History() {
             const StatusIcon = sm.icon;
 
             return (
-              <div
+              <Link
                 key={task.id}
-                className="card flex items-center gap-4"
+                to={getTaskLink(task)}
+                className="card flex items-center gap-4 transition-shadow hover:shadow-md"
               >
                 <div
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tm.color}`}
@@ -81,7 +97,7 @@ export default function History() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-gray-900">
+                  <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
                     {task.source || "未知来源"}
                   </p>
                   <p className="text-xs text-gray-400">
@@ -89,29 +105,34 @@ export default function History() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`flex items-center gap-1 text-xs font-medium ${sm.color}`}
-                  >
-                    <StatusIcon
-                      size={14}
-                      className={
-                        task.status === "processing" ? "animate-spin" : ""
-                      }
-                    />
-                    {sm.label}
-                  </span>
+                {/* Progress bar for active tasks */}
+                {(task.status === "processing" || task.status === "pending") && (
+                  <div className="w-20">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                      <div
+                        className="h-full rounded-full bg-primary-500 transition-all"
+                        style={{ width: `${task.progress}%` }}
+                      />
+                    </div>
+                    <p className="mt-0.5 text-center text-[10px] text-gray-400">{task.progress}%</p>
+                  </div>
+                )}
 
-                  {task.status === "completed" && task.result_id && (
-                    <Link
-                      to={`/result/${task.result_id}`}
-                      className="rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-100"
-                    >
-                      查看结果
-                    </Link>
-                  )}
-                </div>
-              </div>
+                <span
+                  className={`flex items-center gap-1 text-xs font-medium ${sm.color}`}
+                >
+                  <StatusIcon
+                    size={14}
+                    className={task.status === "processing" ? "animate-spin" : ""}
+                  />
+                  {sm.label}
+                </span>
+
+                <span className="flex items-center gap-1 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-primary-50 hover:text-primary-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-primary-900/30">
+                  {getActionLabel(task)}
+                  <ExternalLink size={12} />
+                </span>
+              </Link>
             );
           })}
         </div>

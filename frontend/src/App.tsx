@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import PptxCreate from "./pages/PptxCreate";
 import PptxJobDetail from "./pages/PptxJobDetail";
 import PptxHistory from "./pages/PptxHistory";
+import TaskDetail from "./pages/TaskDetail";
 import { initSession } from "./utils/tracking";
 import "@/stores/themeStore";
 
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/video" element={<VideoConverter />} />
         <Route path="/url" element={<UrlConverter />} />
         <Route path="/document" element={<DocumentConverter />} />
+        <Route path="/task/:taskId" element={<TaskDetail />} />
         <Route path="/result/:resultId" element={<Result />} />
         <Route path="/history" element={<History />} />
         <Route path="/pricing" element={<Pricing />} />

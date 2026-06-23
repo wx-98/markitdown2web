@@ -5,7 +5,7 @@ from backend.api.deps import get_db
 from backend.schemas.common import ApiResponse
 from backend.schemas.url import UrlProcessRequest
 from backend.services.task_service import create_task, get_task
-from backend.services.conversion_service import launch_background, run_url_pipeline
+from backend.services.conversion_service import get_task_event_queue, launch_background, run_url_pipeline
 
 router = APIRouter()
 
@@ -13,6 +13,7 @@ router = APIRouter()
 @router.post("/process")
 async def process_url(body: UrlProcessRequest, db: AsyncSession = Depends(get_db)):
     task = await create_task(db, task_type="url", source=body.url)
+    get_task_event_queue(task.id)
     launch_background(run_url_pipeline(task.id, body.url, body.note_style))
     return ApiResponse(data={"task_id": task.id})
 

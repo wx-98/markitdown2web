@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import get_db
 from backend.schemas.common import ApiResponse
 from backend.services.task_service import create_task, get_task
-from backend.services.conversion_service import launch_background, run_document_pipeline
+from backend.services.conversion_service import get_task_event_queue, launch_background, run_document_pipeline
 from backend.utils.file_utils import save_upload
 
 router = APIRouter()
@@ -26,6 +26,7 @@ async def convert_document(
     file_path = save_upload(content, file.filename)
 
     task = await create_task(db, task_type="document", source=file.filename)
+    get_task_event_queue(task.id)
     launch_background(
         run_document_pipeline(
             task.id, Path(file_path), file.filename, note_style, use_vlm=use_vlm

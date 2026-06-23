@@ -1,10 +1,16 @@
-"""LLM Executor: generate per-page SVG content based on the design spec."""
+"""LLM Executor: generate per-page SVG preview based on the design spec.
+
+SVGs are used for real-time preview in the browser; the actual PPTX uses
+native shapes generated from the structured JSON spec (see exporter.py).
+"""
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
+from typing import Callable, Awaitable
 
 from backend.core.llm.client import chat_completion
 
@@ -23,20 +29,24 @@ Canvas size: {width}x{height} pixels.
 The SVG must:
 - Have exact width="{width}" height="{height}" attributes
 - Use the theme colors provided
-- Include all text content with proper font sizing
-- Use clean, professional layouts
+- Include all text content with proper font sizing (Chinese text use font-family="Microsoft YaHei, sans-serif")
+- Use clean, professional layouts with proper padding and spacing
 - NOT include any external resources (images must be embedded or omitted)
+- Use rectangles, text, and simple shapes to create a professional slide look
 
 Output ONLY the raw SVG markup, starting with <svg and ending with </svg>. No markdown fences.
 """
+
+_MAX_CONCURRENT = 3
 
 
 async def generate_svgs(
     design_spec: str,
     workspace: Path,
     canvas_format: str = "ppt169",
+    on_slide_done: Callable[[int, int], None] | None = None,
 ) -> Path:
-    """Generate one SVG file per page. Returns the directory containing SVGs."""
+    """Generate one SVG file per page with bounded concurrency. Returns the SVG directory."""
     svg_dir = workspace / "svgs"
     svg_dir.mkdir(parents=True, exist_ok=True)
 
@@ -49,42 +59,56 @@ async def generate_svgs(
 
     pages = spec.get("pages", [])
     theme = spec.get("theme", {})
+    total = len(pages)
 
-    system_msg = _SVG_SYSTEM_PROMPT.format(width=width, height=height)
+    sem = asyncio.Semaphore(_MAX_CONCURRENT)
 
-    for i, page in enumerate(pages):
-        page_prompt = (
-            f"Theme: {json.dumps(theme)}\n\n"
-            f"Page {page.get('page_number', i + 1)}: {page.get('title', '')}\n"
-            f"Layout: {page.get('layout', 'content')}\n"
-            f"Content points:\n"
-        )
-        for pt in page.get("content_points", []):
-            page_prompt += f"- {pt}\n"
-        if page.get("visual_suggestion"):
-            page_prompt += f"\nVisual suggestion: {page['visual_suggestion']}\n"
+    async def _gen_one(i: int, page: dict):
+        async with sem:
+            svg_content = await _generate_single_svg(page, theme, width, height)
+            svg_path = svg_dir / f"slide_{i + 1:03d}.svg"
+            svg_path.write_text(svg_content, encoding="utf-8")
+            logger.info("Generated SVG: %s", svg_path.name)
+            if on_slide_done:
+                on_slide_done(i, total)
 
-        messages = [
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": page_prompt},
-        ]
-
-        svg_content = await chat_completion(messages, temperature=0.3, max_tokens=4096)
-
-        svg_start = svg_content.find("<svg")
-        svg_end = svg_content.rfind("</svg>")
-        if svg_start >= 0 and svg_end >= 0:
-            svg_content = svg_content[svg_start:svg_end + 6]
-        else:
-            svg_content = (
-                f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">'
-                f'<rect width="100%" height="100%" fill="{theme.get("background_color", "#ffffff")}"/>'
-                f'<text x="50%" y="50%" text-anchor="middle" font-size="32">'
-                f'{page.get("title", "Slide")}</text></svg>'
-            )
-
-        svg_path = svg_dir / f"slide_{i + 1:03d}.svg"
-        svg_path.write_text(svg_content, encoding="utf-8")
-        logger.info("Generated SVG: %s", svg_path.name)
+    tasks = [_gen_one(i, page) for i, page in enumerate(pages)]
+    await asyncio.gather(*tasks)
 
     return svg_dir
+
+
+async def _generate_single_svg(page: dict, theme: dict, width: int, height: int) -> str:
+    system_msg = _SVG_SYSTEM_PROMPT.format(width=width, height=height)
+
+    page_prompt = (
+        f"Theme: {json.dumps(theme)}\n\n"
+        f"Page {page.get('page_number', 1)}: {page.get('title', '')}\n"
+        f"Layout: {page.get('layout', 'content')}\n"
+        f"Content points:\n"
+    )
+    for pt in page.get("content_points", []):
+        page_prompt += f"- {pt}\n"
+    if page.get("visual_suggestion"):
+        page_prompt += f"\nVisual suggestion: {page['visual_suggestion']}\n"
+
+    messages = [
+        {"role": "system", "content": system_msg},
+        {"role": "user", "content": page_prompt},
+    ]
+
+    svg_content = await chat_completion(messages, temperature=0.3, max_tokens=4096)
+
+    svg_start = svg_content.find("<svg")
+    svg_end = svg_content.rfind("</svg>")
+    if svg_start >= 0 and svg_end >= 0:
+        return svg_content[svg_start:svg_end + 6]
+
+    bg = theme.get("background_color", "#ffffff")
+    primary = theme.get("primary_color", "#1e40af")
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">'
+        f'<rect width="100%" height="100%" fill="{bg}"/>'
+        f'<text x="50%" y="50%" text-anchor="middle" font-size="32" fill="{primary}" '
+        f'font-family="Microsoft YaHei, sans-serif">{page.get("title", "Slide")}</text></svg>'
+    )

@@ -61,3 +61,30 @@ async def chat_completion(
         max_tokens=max_tokens,
     )
     return resp.choices[0].message.content or ""
+
+
+async def chat_completion_stream(
+    messages: list[dict],
+    *,
+    model: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    on_token=None,
+):
+    """Streaming variant — yields tokens and optionally calls *on_token(chunk_str)*."""
+    client = get_llm_client()
+    stream = await client.chat.completions.create(
+        model=model or settings.LLM_MODEL,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stream=True,
+    )
+    parts: list[str] = []
+    async for chunk in stream:
+        delta = chunk.choices[0].delta if chunk.choices else None
+        if delta and delta.content:
+            parts.append(delta.content)
+            if on_token:
+                await on_token(delta.content)
+    return "".join(parts)
